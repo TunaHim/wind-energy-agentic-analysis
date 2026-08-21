@@ -32,7 +32,7 @@ This project demonstrates:
 - **License shown by the archive record:** CC BY-NC-SA 4.0; check the record and access terms before redistribution
 - **Citation:** Ghosh et al. (2025), EERIE IFS-FESOM historical simulation, https://doi.org/10.26050/WDCC/EERIE_FESOM_hist_v1
 
-**Expanded prepared subset:** longitude −5–13°E, latitude 50–62°N, using the EERIE `highres-future-ssp245` simulation for January and July 2020–2024 and 2036–2040. The corrected local cache is under `C:\\Users\\LENOVO\\largeData\\eerie_north_sea_expanded_corrected` and contains approximately 16,694 native atmospheric grid points per timestep.
+**Expanded prepared subset:** longitude −5–13°E, latitude 50–62°N, using the EERIE `highres-future-ssp245` simulation for January and July 2020–2024 and 2036–2040. It contains approximately 16,694 native atmospheric grid points per timestep.
 
 **Masking status:** the expanded cache is a bounding-box extraction. The app uses finite daily SST as a preliminary ocean proxy to exclude many land points, but no final hydrographic North Sea polygon or official marine-only mask has yet been applied. SST itself is missing over many land points.
 
@@ -45,11 +45,11 @@ The first agentic workflow compares two future SSP2-4.5 January windows:
 - January 2020–2024
 - January 2036–2040
 
-The agent operates on a North Sea subset (0–10°E, 50–62°N) and can calculate daily wind-speed distributions, wind-power density, spatial differences, and sensitivity to 10 m-to-100 m power-law assumptions. Five Januarys per window are suitable for an exploratory prototype, not a definitive climate trend or bankable energy assessment. The agent is required to report these caveats.
+The agent operates on a North Sea subset ( −5–13°E, 50–62°N) and can calculate daily wind-speed distributions, wind-power density, spatial differences, and sensitivity to 10 m-to-100 m power-law assumptions. Five Januarys per window are suitable for an exploratory prototype, not a definitive climate trend or bankable energy assessment. The agent is required to report these caveats.
 
 ## Local EERIE Cache
 
-The extraction workflow stores only the decoded regional records under `C:\\Users\\LENOVO\\largeData\\eerie_north_sea_expanded_corrected\\January` and `...\\July`; it does not persist the global EERIE source chunks. The cache is resumable at two-day chunk boundaries and is intended to be created once during preprocessing. The Streamlit app loads the compact January Parquet files from the corrected cache and does not download raw EERIE chunks during an interviewer session.
+The extraction workflow stores only the decoded regional records under `C:myfolder\January` and `...\\July`; it does not persist the global EERIE source chunks. The cache is resumable at two-day chunk boundaries and is intended to be created once during preprocessing. The Streamlit app loads the compact January Parquet files from the corrected cache and does not download raw EERIE chunks during an interviewer session.
 
 For the January-only deployment, the two required Parquet files are approximately 19 MB each (about 39 MB total), plus a small manifest. The chunk directories, July files, raw EERIE data, and API keys do not need to be uploaded to GitHub. The current `.gitignore` excludes Parquet files by default, so deployment packaging must explicitly include only the two prepared January artifacts.
 
@@ -120,8 +120,6 @@ This notebook:
 
 ### 2. Configure Gemini or Groq (optional)
 
-The app supports the same Streamlit secret names used by the ClimateDT dashboard:
-
 ```toml
 # .streamlit/secrets.toml — never commit this file
 GEMINI_API_KEY = "your-gemini-key"
@@ -137,93 +135,6 @@ Both providers use their OpenAI-compatible tool-calling endpoints, so the same b
 ```bash
 streamlit run app.py
 ```
-
-The app provides three main interfaces:
-
-#### **Map Tab**
-- Climatological wind power density (WPD) and capacity factor across the North Sea
-- Interactive map with site selection
-
-#### **Site Explorer Tab**
-- Time series of wind speed, power density, capacity factor
-- Weibull distribution fit
-- Seasonal and diurnal cycles
-- Interannual trend analysis
-- Extreme-wind return periods
-
-#### **Agent Assistant Tab**
-- Paste your OpenAI or Anthropic API key (session-only, not stored)
-- Chat with an AI agent about wind resources
-- Agent autonomously calls tools to:
-  - Retrieve site statistics
-  - Compare multiple sites
-  - Compute trends and climate risk
-  - Estimate extreme-wind return periods
-  - Generate wind roses
-
-## Wind Energy Metrics
-
-### Wind Power Density (WPD)
-$$\text{WPD} = \frac{1}{2} \rho \bar{v}^3$$
-
-where ρ is air density and v̄ is mean wind speed. Typical values: 200–500 W/m² for good offshore sites.
-
-### Weibull Distribution
-Wind speed is characterized by a 2-parameter Weibull distribution:
-$$f(v) = \frac{k}{A}\left(\frac{v}{A}\right)^{k-1} \exp\left(-\left(\frac{v}{A}\right)^k\right)$$
-
-- **Shape parameter (k):** Characterizes wind variability. k ≈ 2 is typical offshore.
-- **Scale parameter (A):** Related to mean wind speed.
-
-### Capacity Factor (CF)
-$$\text{CF} = \frac{\text{Mean Power Output}}{\text{Rated Capacity}}$$
-
-Computed by applying a reference turbine power curve (NREL 15 MW IEA) to the wind speed time series. Typical values: 40–50% for good offshore sites.
-
-### Annual Energy Production (AEP)
-$$\text{AEP} = \text{CF} \times P_{\text{rated}} \times 8760 \text{ hours}$$
-
-### P50/P90 Exceedance
-- **P50:** 50th percentile of AEP (median expectation)
-- **P90:** 90th percentile of AEP (conservative estimate for financing)
-
-## Agentic AI Architecture
-
-The agent uses **tool-calling** to autonomously analyze wind resources:
-
-1. **Tools:** Bounded set of functions operating on precomputed data
-   - `get_site_stats(lat, lon)` — retrieve WPD, CF, Weibull parameters
-   - `compare_sites(site1, site2)` — compare two locations
-   - `compute_trend(site, years)` — analyze long-term trends
-   - `estimate_extreme_return_period(site, wind_speed)` — extreme-wind statistics
-   - `wind_rose_plot(site)` — generate wind rose visualization
-
-2. **LLM:** OpenAI GPT-4 or Anthropic Claude (user provides API key)
-
-3. **Workflow:**
-   - User asks a question (e.g., "Which site has the most stable wind resource?")
-   - Agent decides which tools to call
-   - Agent chains multiple tool calls to answer the question
-   - Agent synthesizes results into a narrative response
-
-## Methodology & Validation
-
-### Data Quality
-- EERIE IFS-FESOM is a state-of-the-art coupled climate model
-- Forced by CMIP6 historical forcings (1950–2014)
-- Validated against observations in published EERIE papers
-
-### Wind Speed Extrapolation
-- Model output at 100 m height (or interpolated from model levels)
-- No log-law extrapolation needed; direct model output used
-
-### Air Density Correction
-- Computed from temperature and pressure at each grid point and time
-- Accounts for local atmospheric conditions
-
-### Reference Turbine
-- NREL 15 MW IEA reference turbine (publicly available power curve)
-- Representative of modern offshore wind technology
 
 ## Limitations
 
