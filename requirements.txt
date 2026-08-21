@@ -8,6 +8,7 @@ numcodecs>=0.12.0
 zarr>=2.16.0
 scipy>=1.10.0
 plotly>=5.18.0
+matplotlib>=3.8.0
 google-genai>=0.1.0
 groq>=0.4.0
 openai>=1.10.0
