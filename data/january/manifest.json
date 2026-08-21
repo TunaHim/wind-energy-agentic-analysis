@@ -1,0 +1,41 @@
+{
+  "dataset_url": "https://km-scale-cloud.dkrz.de/datasets/ifs-fesom2-sr.highres-future-ssp245.v20240304.atmos.native.2D_daily_avg/zarr",
+  "month": "January",
+  "region_bbox": {
+    "longitude": [
+      -5.0,
+      13.0
+    ],
+    "latitude": [
+      50.0,
+      62.0
+    ]
+  },
+  "longitude_convention": "normalized to -180..180 before masking",
+  "mask_status": "expanded bounding box; land/sea and hydrographic North Sea masks not yet applied",
+  "variables": [
+    "m10u",
+    "m10v",
+    "mean2t",
+    "msp",
+    "msst"
+  ],
+  "wind_reference_height_m": 10,
+  "raw_global_chunks_persisted": false,
+  "periods": {
+    "January 2020-2024": {
+      "path": "C:\\Users\\LENOVO\\largeData\\eerie_north_sea_expanded_corrected\\January\\January_2020-2024.parquet",
+      "rows": 2587570,
+      "start": "2020-01-01",
+      "end": "2024-01-31",
+      "points_per_timestep": 16694
+    },
+    "January 2036-2040": {
+      "path": "C:\\Users\\LENOVO\\largeData\\eerie_north_sea_expanded_corrected\\January\\January_2036-2040.parquet",
+      "rows": 2587570,
+      "start": "2036-01-01",
+      "end": "2040-01-31",
+      "points_per_timestep": 16694
+    }
+  }
+}
