@@ -156,21 +156,28 @@ streamlit run app.py
 Contributions welcome! Please open an issue or submit a pull request.
 
 ## License
+## Disclaimer & Terms of Use
 
-This project is licensed under the MIT License. See LICENSE file for details.
+### Code & Application
+This repository is an academic research prototype developed strictly for educational, demonstration, and non-commercial climate analysis purposes. 
 
-EERIE data is licensed under CC-BY 4.0. See https://creativecommons.org/licenses/by/4.0/ for details.
+### Data Licensing & Attribution
+The underlying climate model output used in this project originates from the **European Eddy-Rich Earth System Models (EERIE)** project:
+
+- **EERIE Dataset Citation:** Ghosh et al. (2024/2025), *EERIE IFS-FESOM historical and SSP2-4.5 climate simulations*, World Data Center for Climate (WDCC). DOI: [10.26050/WDCC/EERIE_FESOM_hist_v1](https://doi.org/10.26050/WDCC/EERIE_FESOM_hist_v1).
+- **Data License:** Distributed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**. 
+- **Usage Notice:** This prototype uses a spatially cropped subset for academic demonstration. The data is non-commercial and must not be used for bankable energy yields, financial underwriting, or commercial site selection without primary data verification.
 
 ## Citation
 
 If you use this project in research, please cite:
 
 ```bibtex
-@software{wind_energy_agentic_2024,
+@software{wind_energy_agentic_2026,
   title={Wind Energy Agentic Analysis Platform},
-  author={Your Name},
-  year={2024},
-  url={https://github.com/yourusername/wind-energy-agentic-analysis}
+  author={Himansu Kesari Pradhan},
+  year={2026},
+  url={https://github.com/TunaHim/wind-energy-agentic-analysis}
 }
 
 @article{ghosh2024eerie,
