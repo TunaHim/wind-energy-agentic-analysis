@@ -61,7 +61,7 @@ SITES = {
 
 COUNTRY_GEOJSON_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson"
 BATHYMETRY_URL = "https://erddap.emodnet.eu/erddap/griddap/bathymetry_dtm_2024.nc?elevation%5B(50):100:(62)%5D%5B(-5):100:(13)%5D"
-EEZ_MAP_URL = "https://upload.wikimedia.org/wikipedia/commons/7/7f/North_Sea_map-en.png"
+EEZ_MAP_PAGE_URL = "https://commons.wikimedia.org/wiki/File:North_Sea_map-en.png"
 
 
 @st.cache_data(show_spinner="Loading compact runtime artifacts...")
@@ -79,13 +79,6 @@ def load_country_geojson() -> dict:
 @st.cache_data(show_spinner="Loading EMODnet bathymetry subset...")
 def load_bathymetry_bytes() -> bytes:
     response = requests.get(BATHYMETRY_URL, timeout=180)
-    response.raise_for_status()
-    return response.content
-
-
-@st.cache_data(show_spinner="Loading North Sea EEZ map...")
-def load_eez_map_image() -> bytes:
-    response = requests.get(EEZ_MAP_URL, timeout=60)
     response.raise_for_status()
     return response.content
 
@@ -184,14 +177,9 @@ def render_bathymetry_figure(selected_site: str) -> None:
 
 
 def render_north_sea_eez_figure(selected_site: str) -> None:
-    """Display a public-domain North Sea EEZ map from Wikimedia Commons."""
-    try:
-        img_bytes = load_eez_map_image()
-    except Exception as exc:
-        st.warning(f"EEZ map could not be loaded: {exc}")
-        return
-    st.image(BytesIO(img_bytes), use_container_width=True)
-    st.caption("Exclusive economic zones for the North Sea region (Wikimedia Commons: North_Sea_map-en.png). Site shown for context: " + selected_site)
+    """Provide a link to a public-domain North Sea EEZ map on Wikimedia Commons."""
+    st.markdown(f"[Click here to view the North Sea EEZ map on Wikimedia Commons]({EEZ_MAP_PAGE_URL})")
+    st.caption("The map shows exclusive economic zones for the North Sea region. Wikimedia Commons may block direct hot-linking; open the link to view the image. Site shown for context: " + selected_site)
 
 
 def format_change(value: float, unit: str = "") -> str:
@@ -208,18 +196,29 @@ def check_dependencies() -> bool:
 def render_intro() -> None:
     st.markdown("## North Sea Wind Intelligence")
     st.write(
-        "This prototype combines high-resolution EERIE climate-model output, wind-resource analysis, "
-        "and agentic AI. It compares January and July wind conditions from two future SSP2-4.5 windows, "
-        "helps explore representative North Sea sites, and explains what the data can—and cannot—support."
+        "This prototype combines km-scale EERIE climate-model output with an exploratory wind-resource "
+        "sensitivity and an agentic interface. It compares January and July daily 10 m wind between a "
+        "near-term (2020–2024) and a mid-century (2036–2040) SSP2-4.5 window, lets you inspect a small "
+        "set of representative North Sea sites, and clearly states where the data and methods are not yet "
+        "sufficient for engineering or investment decisions."
     )
     cols = st.columns(3)
-    cols[0].markdown("**Climate analysis**\n\nSpatial differences, daily distributions, percentiles, and model-period comparisons.")
-    cols[1].markdown("**Wind screening**\n\nWind speed, wind-power density, site context, and hub-height sensitivity.")
-    cols[2].markdown("**Agentic AI**\n\nThe agent plans an analysis, calls bounded scientific tools, shows its trace, and reports caveats.")
-    st.info("Prototype scope: January and July 2020–2024 versus 2036–2040, daily 10 m wind, approximately 9 km native atmospheric grid. Results are exploratory, not bankable.")
-    st.caption("Source: EERIE IFS-FESOM2-SR highres-future-ssp245, retrieved from the DKRZ km-scale cloud Zarr endpoint. The compact runtime package contains January and July m10u, m10v, mean2t, msp, and msst; the build applies a preliminary North Sea polygon mask.")
+    cols[0].markdown("**Climate analysis**\n\nSpatial patterns, period differences, daily distributions and percentile ranges. The comparison is descriptive and uses a single model realisation; it is not a robust climate-change attribution.")
+    cols[1].markdown("**Wind screening**\n\n10 m wind speed, wind-power density, site context and a 120 m power-law sensitivity. These are screening indicators, not bankable resource estimates.")
+    cols[2].markdown("**Agentic interface**\n\nA rule-based and LLM-aided agent that calls bounded scientific tools, reports its trace, and explains limitations.")
+    st.info("Prototype scope: one realisation of EERIE IFS-FESOM2-SR highres-future-ssp245, daily 10 m wind, January and July, 2020–2024 versus 2036–2040. The native grid is ~9 km over an expanded North Sea domain with a preliminary mask. Results are illustrative and not bankable.")
+    st.caption("Source: EERIE DKRZ km-scale cloud Zarr archive. The compact runtime package contains daily 10 m zonal and meridional wind, 2 m temperature, surface pressure and SST over a preliminary North Sea polygon. No bias correction, downscaling or model-level hub-height wind is included.")
 
 
+def render_future_expansion() -> None:
+    st.divider()
+    st.markdown("### Future expansion")
+    st.markdown(
+        "This prototype is intentionally narrow. Useful extensions include:\n"
+        "- a) other km-scale model results for wind-energy analysis (e.g., multi-model comparison, more SSPs, longer climatologies);\n"
+        "- b) solar energy over the North Sea or Europe to be included;\n"
+        "- c) more built-in tools for agentic AI analysis (e.g., real EEZ overlay, wake and loss-factor integration, measured validation, multi-period trend assessment)."
+    )
 
 
 
@@ -279,6 +278,7 @@ def render_runtime_seasonal_overview(january: dict, july: dict) -> None:
     metric = st.selectbox("Distribution metric", ["mean_wind_speed_10m_ms", "mean_wpd_wm2", "p90_wind_speed_10m_ms"], key="seasonal_distribution_metric")
     st.plotly_chart(px.box(daily, x="period", y=metric, color="month", points="outliers", title="Daily distributions by month and period"), use_container_width=True)
     st.warning("January and July are seasonal windows, not annual production estimates. The prepared runtime data uses daily 10 m wind and requires explicit hub-height assumptions for turbine screening.")
+    render_future_expansion()
 
 
 def render_runtime_site_explorer(january: dict, july: dict) -> None:
@@ -533,7 +533,7 @@ def deterministic_agent(toolkit: JanuaryAgentToolkit, question: str) -> tuple[st
         for item in workflow["trace"]:
             trace.append({"step": len(trace) + 1, "action": "Call bounded tool", "tool": item["tool"]})
         ranking = workflow["recommendation"]
-        answer = "**Multi-step screening recommendation (engineering intent)**\n\n"
+        answer = "**Multi-step screening result (engineering intent)**\n\n"
         if ranking:
             answer += "The highest-ranked reference sites in the later period by mean WPD are:\n\n"
             answer += "\n".join(f"- **{row['site']}**: {row['mean_wpd_wm2']:.1f} W/m² at 10 m" for row in ranking)
@@ -619,7 +619,7 @@ def render_agent(january: dict, july: dict) -> None:
 
     if "agent_messages" not in st.session_state:
         st.session_state["agent_messages"] = [
-            {"role": "assistant", "content": "Hi. I'm the North Sea wind intelligence agent. Ask me about January/July changes, regional screening, site ranking, hub-height sensitivity, or the limits of this data. I'll tell you which tool I used and where the data came from."}
+            {"role": "assistant", "content": "Hi! I'm the North Sea wind analysis agent. I can compare January and July wind changes, run a regional screening, rank reference sites, test hub-height sensitivity, or explain what this data can and cannot do. Ask away — I'll show which tool I used, where the data came from, and what the caveats are."}
         ]
     if "pending_agent_question" not in st.session_state:
         st.session_state["pending_agent_question"] = None
@@ -646,7 +646,7 @@ def render_agent(january: dict, july: dict) -> None:
     chat_col, side_col = st.columns([2.0, 1.0])
     with chat_col:
         st.markdown("### Conversation")
-        st.info("Select an agent provider below **Workspace** in the sidebar. The Built-in scientific agent runs offline; Groq and Gemini need a configured API key.")
+        st.info("Select an agent provider below **Workspace** in the sidebar. The 'Built-in scientific agent' runs offline and is the most reliable choice for a live demo. Groq and Gemini need a configured API key; and currently you are using the app developer's keys, which can hit rate limits. Groq's openai/gpt-oss-120b usually works well.")
         for msg in st.session_state["agent_messages"]:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
@@ -686,7 +686,7 @@ def render_agent(january: dict, july: dict) -> None:
         st.markdown("#### Quick questions")
         quick = [
             ("Compare January periods", "Compare January 2020–2024 and January 2036–2040, then explain the caveats."),
-            ("Recommend a region", "Run a full North Sea screening recommendation, then explain the limitations."),
+            ("Screen a region", "Run a full North Sea screening, then explain the limitations."),
             ("Rank reference sites", "Compare Dogger Bank, Hornsea, German Bight, and Moray Firth in the later period. Rank them by WPD and explain the caveats."),
             ("Largest WPD change", "Which region has the largest January change in wind-power density, and is that more useful for climate analysis or wind-project screening?"),
             ("Hub-height sensitivity", "How sensitive is the estimated 120 m wind and illustrative capacity factor to the shear exponent?"),
