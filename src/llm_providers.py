@@ -9,6 +9,11 @@ import json
 import os
 from typing import Any, Callable
 
+try:
+    from openai import APIError
+except ImportError:  # pragma: no cover
+    APIError = Exception
+
 
 PROVIDERS = {
     "Gemini": {
@@ -20,11 +25,11 @@ PROVIDERS = {
     "Groq": {
         "secret_name": "GROQ_API_KEY",
         "base_url": "https://api.groq.com/openai/v1",
-        "default_model": "openai/gpt-oss-20b",
+        "default_model": "llama-3.3-70b-versatile",
         "models": [
-            "openai/gpt-oss-20b",
-            "openai/gpt-oss-120b",
             "llama-3.3-70b-versatile",
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
         ],
     },
 }
@@ -86,19 +91,35 @@ def run_tool_calling_agent(
         {"role": "user", "content": question},
     ]
     trace = [{"step": 1, "action": "LLM created a bounded analysis plan", "provider": provider, "model": model}]
+    allowed_tools = {tool["function"]["name"] for tool in tool_definitions}
     for _ in range(max_rounds):
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tool_definitions,
-            tool_choice="auto",
-        )
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tool_definitions,
+                tool_choice="auto",
+            )
+        except APIError as exc:
+            trace.append({"step": len(trace) + 1, "action": "LLM API error", "detail": str(exc)})
+            return (
+                f"The {provider} model '{model}' returned an invalid tool call. "
+                "Try a different model (e.g. llama-3.3-70b-versatile for Groq) or use the Built-in scientific agent.",
+                trace,
+            )
         message = response.choices[0].message
         messages.append(message.model_dump(exclude_none=True))
         if not message.tool_calls:
             trace.append({"step": len(trace) + 1, "action": "LLM synthesized tool results"})
             return message.content or "The agent returned no text.", trace
         for call in message.tool_calls:
+            if call.function.name not in allowed_tools:
+                trace.append({"step": len(trace) + 1, "action": "LLM called an unknown tool", "tool": call.function.name})
+                return (
+                    f"The model called an unknown tool '{call.function.name}'. "
+                    "Try the Built-in scientific agent or a different LLM.",
+                    trace,
+                )
             arguments = json.loads(call.function.arguments or "{}")
             trace.append({"step": len(trace) + 1, "action": "Call bounded scientific tool", "tool": call.function.name, "arguments": arguments})
             result = dispatch(call.function.name, arguments)

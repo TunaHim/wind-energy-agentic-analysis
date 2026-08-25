@@ -123,6 +123,7 @@ def summarize_window(
     """Summarize one January window without implying annual bankability."""
     wind = frame[wind_column].to_numpy(dtype=float)
     k, scale, mean_speed = fit_weibull(wind)
+    wpd = frame[power_density_column].to_numpy(dtype=float)
     return {
         "period": period,
         "days": int(frame["time"].dt.normalize().nunique()) if "time" in frame else None,
@@ -130,7 +131,11 @@ def summarize_window(
         "median_wind_speed_ms": float(np.nanmedian(wind)),
         "p10_wind_speed_ms": float(np.nanpercentile(wind, 10)),
         "p90_wind_speed_ms": float(np.nanpercentile(wind, 90)),
-        "mean_wpd_wm2": float(np.nanmean(frame[power_density_column])),
+        "std_wind_speed_ms": float(np.nanstd(wind)),
+        "mean_wpd_wm2": float(np.nanmean(wpd)),
+        "p10_wpd_wm2": float(np.nanpercentile(wpd, 10)),
+        "p90_wpd_wm2": float(np.nanpercentile(wpd, 90)),
+        "std_wpd_wm2": float(np.nanstd(wpd)),
         "weibull_shape_k": k,
         "weibull_scale_a_ms": scale,
         "note": "January daily screening result; not an annual energy estimate",
@@ -142,7 +147,13 @@ def compare_window_summaries(early: Mapping, late: Mapping) -> dict:
     metrics = [
         "mean_wind_speed_ms",
         "median_wind_speed_ms",
+        "p10_wind_speed_ms",
+        "p90_wind_speed_ms",
+        "std_wind_speed_ms",
         "mean_wpd_wm2",
+        "p10_wpd_wm2",
+        "p90_wpd_wm2",
+        "std_wpd_wm2",
         "weibull_shape_k",
         "weibull_scale_a_ms",
     ]
@@ -196,7 +207,7 @@ def agent_analysis_contract() -> dict:
             {"label": LATE_WINDOW.label, "years": LATE_WINDOW.years},
         ],
         "region": {"longitude": [-5, 13], "latitude": [50, 62]},
-        "region_mask": "Expanded bounding box; a finite-SST ocean proxy can exclude many land points, but a hydrographic North Sea polygon is still required for final marine-only analysis.",
+        "region_mask": "Expanded bounding box with a preliminary North Sea polygon mask; a hydrographic or EEZ North Sea polygon is still required for bankable marine-only analysis.",
         "data_source": "EERIE IFS-FESOM2-SR highres-future-ssp245 via the DKRZ km-scale cloud Zarr endpoint",
         "prepared_variables": ["m10u", "m10v", "mean2t", "msp", "msst"],
         "direct_wind_height_m": 10,

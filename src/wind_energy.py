@@ -232,41 +232,43 @@ def compute_aep(wind_speeds, installed_capacity_mw=15.0, turbine=REFERENCE_TURBI
     return float(aep)
 
 
-def compute_extreme_wind_return_period(wind_speeds, return_period_years=50):
+def compute_extreme_wind_return_period(wind_speeds, return_period_years=50, samples_per_year=None):
     """
     Estimate extreme wind speed at a given return period.
-    
+
     Uses Weibull distribution to extrapolate to rare events.
-    
+
     Parameters
     ----------
     wind_speeds : array-like
         Wind speed time series (m/s)
     return_period_years : int
         Return period (years), default 50
-    
+    samples_per_year : int or None
+        Number of samples per year. If None, it is inferred from a one-year
+        time series when available, otherwise defaults to 365 (daily).
+
     Returns
     -------
     extreme_wind : float
         Estimated wind speed at return period (m/s)
     """
     k, A, _ = fit_weibull(wind_speeds)
-    
+
     if np.isnan(k) or np.isnan(A):
         return np.nan
-    
+
     # For Weibull distribution:
     # Probability of exceeding v: P(V > v) = exp(-(v/A)^k)
     # Return period T (years) corresponds to probability p = 1 / (T * n_samples_per_year)
-    # Assuming ~8760 hourly samples per year:
-    n_samples_per_year = 8760
+    n_samples_per_year = samples_per_year if samples_per_year is not None else 365
     p = 1 / (return_period_years * n_samples_per_year)
-    
+
     # Solve for v: exp(-(v/A)^k) = p
     # (v/A)^k = -ln(p)
     # v = A * (-ln(p))^(1/k)
     extreme_wind = A * (-np.log(p))**(1/k)
-    
+
     return float(extreme_wind)
 
 
@@ -382,7 +384,7 @@ def extrapolate_wind_speed_power_law(wind_speed_10m, target_height_m=100.0, shea
     return np.asarray(wind_speed_10m) * (target_height_m / 10.0) ** shear_exponent
 
 
-def height_sensitivity(wind_speed_10m, heights=(100.0,), shear_exponents=(0.08, 0.12, 0.16), turbine=REFERENCE_TURBINE):
+def height_sensitivity(wind_speed_10m, heights=(120.0,), shear_exponents=(0.08, 0.12, 0.16), turbine=REFERENCE_TURBINE):
     """Calculate capacity-factor sensitivity to hub-height assumptions."""
     rows = []
     for height in heights:
