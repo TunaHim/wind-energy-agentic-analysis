@@ -1,198 +1,157 @@
-# Wind Energy Agentic Analysis Platform
+# North Sea Wind Intelligence — Agentic EERIE Prototype
 
-An AI-powered Streamlit application for wind energy resource assessment using high-resolution climate model data from the EERIE project (European Eddy-Rich Earth System Models). The platform combines climate data analysis with agentic AI capabilities to provide renewable energy companies with actionable insights for offshore wind farm site selection and climate-risk assessment.
+A compact, agentic-interface Streamlit prototype for exploratory offshore wind screening over the North Sea using km-scale climate output from the **EERIE IFS-FESOM2-SR** `highres-future-ssp245` simulation.
 
-## Overview
+The app is built for live demonstration: it runs from a small, pre-computed runtime package (~1.6 MB) and does **not** fetch raw EERIE chunks during the interview session.
 
-This project demonstrates:
-- **High-resolution climate modeling:** IFS-FESOM coupled model output (9 km atmosphere, 5 km ocean) from the EERIE project
-- **Wind energy resource characterization:** Capacity factor, power density, Weibull distribution, AEP, and extreme-wind statistics
-- **Agentic AI analysis:** LLM-powered tool-calling agent that autonomously analyzes wind resources and compares sites
-- **Interactive visualization:** Streamlit app with climatology maps, time-series analysis, and agent-assisted exploration
+## Scope and disclaimer
 
-## Data Source
+This work is for **research and exploratory analysis only**. It is not a decision-support, engineering, or investment tool. The outputs are intended to illustrate how km-scale climate data and a bounded agentic interface can support wind-energy questions, not to replace site-specific measurement campaigns, microscale modelling, or due-diligence workflows.
 
-**EERIE IFS-FESOM2-SR Historical Simulation (1950–2014)**
+## What this prototype demonstrates
 
-- **Model:** Integrated Forecasting System (IFS) coupled to FESOM2.5 ocean model
-- **Resolution:** ~9 km atmosphere (Tco1279), ~5 km ocean (NG5 unstructured grid)
-- **Period:** 1950–2014 (65-year historical run following HighResMIP protocol)
-- **Variables available in the retrieved native daily dataset:** 10 m wind components (`m10u`, `m10v`), 2 m temperature (`mean2t`), mean sea-level pressure (`msp`), and additional surface diagnostics
-- **Access:** DKRZ km-scale cloud through its public Zarr chunk endpoint; the native grid is a reduced Gaussian grid, not a regular latitude/longitude raster
+- **Kilometre-scale climate data for wind screening:** EERIE IFS-FESOM2-SR at ~9 km atmosphere / ~5 km ocean on its native reduced Gaussian grid.
+- **Future period comparison:** January and July 2020–2024 versus 2036–2040 under SSP2-4.5.
+- **Wind-resource metrics:** 10 m wind speed, wind direction, air density, wind-power density (WPD), and hub-height sensitivity via a power-law assumption.
+- **Agentic interface:** A rule-based and LLM-aided agent that calls bounded scientific tools, reports its execution trace, and states the limitations. A deterministic built-in agent is available when no API key is configured.
+
+## Data source and provenance
+
+- **Model:** EERIE IFS-FESOM2-SR, `highres-future-ssp245` (future scenario, not the historical run).
+- **Resolution:** ~9 km atmosphere (Tco1279) coupled to ~5 km FESOM2.5 ocean (NG5).
+- **Periods used in the app:** January and July for 2020–2024 and 2036–2040.
+- **Variables extracted:** `m10u`, `m10v` (10 m wind components), `mean2t` (2 m temperature), `msp` (mean sea-level pressure), `msst` (sea-surface temperature).
+- **Prepared region:** −5° to 13°E, 50° to 62°N.
+- **Access:** DKRZ km-scale cloud Zarr endpoint.
 - **Data catalogue:** https://km-scale-cloud.dkrz.de/datasets
-- **Dataset metadata endpoint:** https://km-scale-cloud.dkrz.de/datasets/ifs-fesom2-sr.hist-1950.v20240304.atmos.native.2D_daily_avg/
-- **Zarr access endpoint:** https://km-scale-cloud.dkrz.de/datasets/ifs-fesom2-sr.hist-1950.v20240304.atmos.native.2D_daily_avg/zarr
-- **January prototype future dataset metadata:** https://km-scale-cloud.dkrz.de/datasets/ifs-fesom2-sr.highres-future-ssp245.v20240304.atmos.native.2D_daily_avg/
-- **January prototype future Zarr endpoint:** https://km-scale-cloud.dkrz.de/datasets/ifs-fesom2-sr.highres-future-ssp245.v20240304.atmos.native.2D_daily_avg/zarr
 - **EERIE project:** https://eerie-project.eu/
-- **EERIE data-access documentation:** https://easy.gems.dkrz.de/simulations/EERIE/eerie_data-access_online.html
-- **EERIE Phase 1 documentation:** https://easy.gems.dkrz.de/simulations/EERIE/eerie_phase1.html
-- **Long-term archive / dataset record:** https://www.wdc-climate.de/ui/entry?acronym=EERIE_FESOM_hist_HRdayva19
-- **Dataset DOI:** https://doi.org/10.26050/WDCC/EERIE_FESOM_hist_v1
-- **License shown by the archive record:** CC BY-NC-SA 4.0; check the record and access terms before redistribution
-- **Citation:** Ghosh et al. (2025), EERIE IFS-FESOM historical simulation, https://doi.org/10.26050/WDCC/EERIE_FESOM_hist_v1
 
-**Expanded prepared subset:** longitude −5–13°E, latitude 50–62°N, using the EERIE `highres-future-ssp245` simulation for January and July 2020–2024 and 2036–2040. It contains approximately 16,694 native atmospheric grid points per timestep.
+### Important height limitation
 
-**Masking status:** the expanded cache is a bounding-box extraction. The app uses finite daily SST as a preliminary ocean proxy to exclude many land points, but no final hydrographic North Sea polygon or official marine-only mask has yet been applied. SST itself is missing over many land points.
+The EERIE 2D daily output provides **10 m wind only**, not 100 m or hub-height wind. All hub-height numbers in the app are extrapolations using a power-law shear assumption and are **illustrative**, not bankable.
 
-**Important height limitation:** the retrieved EERIE atmospheric dataset provides 10 m wind, not 100 m wind. Capacity-factor results are therefore illustrative at 10 m and should not be presented as bankable hub-height estimates without a documented vertical-extrapolation or model-level workflow.
+### Masking status
 
-## January Prototype Scope
+The expanded cache is a bounding-box extraction. The app uses finite `msst` as a preliminary ocean proxy to exclude many land points, but a final hydrographic North Sea polygon has **not** yet been applied.
 
-The first agentic workflow compares two future SSP2-4.5 January windows:
-
-- January 2020–2024
-- January 2036–2040
-
-The agent operates on a North Sea subset ( −5–13°E, 50–62°N) and can calculate daily wind-speed distributions, wind-power density, spatial differences, and sensitivity to 10 m-to-100 m power-law assumptions. Five Januarys per window are suitable for an exploratory prototype, not a definitive climate trend or bankable energy assessment. The agent is required to report these caveats.
-
-## Local EERIE Cache
-
-The extraction workflow stores only the decoded regional records under `C:myfolder\January` and `...\\July`; it does not persist the global EERIE source chunks. The cache is resumable at two-day chunk boundaries and is intended to be created once during preprocessing. The Streamlit app loads the compact January Parquet files from the corrected cache and does not download raw EERIE chunks during an interviewer session.
-
-For the January-only deployment, the two required Parquet files are approximately 19 MB each (about 39 MB total), plus a small manifest. The chunk directories, July files, raw EERIE data, and API keys do not need to be uploaded to GitHub. The current `.gitignore` excludes Parquet files by default, so deployment packaging must explicitly include only the two prepared January artifacts.
-
-## Project Structure
+## Project structure
 
 ```
 wind-energy-agentic-analysis/
-├── README.md                              # This file
-├── requirements.txt                       # Python dependencies
-├── .gitignore                             # Git ignore rules
-├── notebooks/
-│   └── 01_eerie_download_preprocess.ipynb # EERIE data fetch & wind-energy preprocessing
+├── app.py                                   # Streamlit application
+├── README.md                                # This file
+├── requirements.txt                         # Python dependencies
+├── .gitignore
+├── .streamlit/
+│   └── secrets.toml                         # Gemini/Groq API keys (do not commit)
 ├── data/
-│   ├── north_sea_highres_sample_points.parquet # Retrieved native-grid sample
-│   ├── north_sea_highres_sample_points.csv     # Portable copy of the sample
-│   └── highres_sample_provenance.json          # Dataset and limitation metadata
-├── src/
-│   ├── __init__.py
-│   ├── wind_energy.py                     # Wind energy calculations (WPD, Weibull, CF)
-│   ├── january_analysis.py                # January windows and EERIE analysis contract
-│   ├── january_agent_tools.py             # Bounded January comparison tools
-│   ├── llm_providers.py                   # Gemini/Groq provider abstraction
-│   ├── agent_tools.py                     # Existing bounded tools for agentic AI
-│   └── utils.py                           # Utility functions
-├── tests/
-│   └── test_wind_energy.py                # Unit tests
-└── app.py                                 # Streamlit main application
+│   ├── runtime/january/                     # Compact January artifacts
+│   └── runtime/july/                        # Compact July artifacts
+├── largeData/                               # Full extracted EERIE cache (gitignored)
+├── notebooks/
+│   └── ARCHIVED_01_eerie_download_preprocess.ipynb  # Old demonstrator, archived
+└── src/
+    ├── build_runtime_artifacts.py           # Build the compact runtime package
+    ├── january_analysis.py                  # Window/period helpers and guardrails
+    ├── january_agent_tools.py               # Bounded scientific tools for the agent
+    ├── llm_providers.py                     # Gemini / Groq OpenAI-compatible provider layer
+    ├── runtime_data.py                      # Load the compact runtime package
+    └── wind_energy.py                       # WPD, Weibull, capacity factor, power-law
 ```
+
+The `data/runtime/` directory is the artifact that should be uploaded with the public deployment. The `largeData/` cache is kept for local rebuilding and is excluded from Git.
 
 ## Installation
 
-### Prerequisites
-- Python 3.9+
-- Git
-
-### Setup
-
 ```bash
-git clone https://github.com/yourusername/wind-energy-agentic-analysis.git
-cd wind-energy-agentic-analysis
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+venv\Scripts\activate           # Windows
+# source venv/bin/activate      # macOS/Linux
 
-# Install dependencies
 pip install -r requirements.txt
 ```
 
-## Usage
+## Configuration
 
-### 1. Download & Preprocess EERIE Data
-
-Run the Jupyter notebook to fetch EERIE IFS-FESOM data from the DKRZ km-scale cloud and precompute wind-energy metrics:
-
-```bash
-jupyter notebook notebooks/01_eerie_download_preprocess.ipynb
-```
-
-This notebook:
-- Connects to EERIE intake catalog
-- Subsets North Sea region (1995–2014)
-- Computes wind speed, direction, air density
-- Calculates WPD, Weibull parameters, capacity factor
-- Saves precomputed outputs to `data/`
-
-**Note:** This step requires internet access to DKRZ servers. Estimated runtime: 30–60 minutes depending on network and compute resources.
-
-### 2. Configure Gemini or Groq (optional)
+API keys are read from Streamlit secrets or environment variables. Copy the example and add your keys:
 
 ```toml
-# .streamlit/secrets.toml — never commit this file
-GEMINI_API_KEY = "your-gemini-key"
-GROQ_API_KEY = "your-groq-key"
+# .streamlit/secrets.toml
+GEMINI_API_KEY = "your-key-here"
+GROQ_API_KEY = "your-key-here"
 ```
 
-The app reads these values through `st.secrets` and never displays or logs them. For Streamlit Community Cloud, add the same names under the app's **Settings → Secrets** panel. The interviewer can then select Gemini or Groq from the Agent workspace without entering a key.
+For Streamlit Community Cloud, add `GEMINI_API_KEY` and `GROQ_API_KEY` under **Settings → Secrets**.
 
-Both providers use their OpenAI-compatible tool-calling endpoints, so the same bounded climate-analysis tools work with either model. If no key is configured, the deterministic tool-calling demo remains available.
+**API quota and reliability:** Groq and Gemini need a configured API key; and currently you are using the app developer's keys, which can hit rate limits. Groq's `openai/gpt-oss-120b` usually answers well, but for a reliable live demo the **Built-in scientific agent** is recommended because it runs entirely offline.
 
-### 3. Run the Streamlit App
+## Running the app
 
 ```bash
 streamlit run app.py
 ```
 
-## Limitations
+The app has three tabs:
 
-1. **Climate model uncertainty:** EERIE is a single model; ensemble uncertainty not quantified here
-2. **Spatial resolution:** 5–9 km is high but still coarser than microscale site-specific assessment
-3. **Historical period:** 1995–2014 may not capture all decadal variability
-4. **Offshore-only focus:** This analysis is for offshore wind; onshore would require different surface roughness treatment
+1. **North Sea overview** — maps of mean wind and WPD, downloaded variables, and the daily distribution.
+2. **Site explorer** — reference site details, Weibull fit, 120 m capacity factor, AEP, day-of-month profiles, and hub-height sensitivity.
+3. **Agent workspace** — ask the agent to compare periods, rank sites, explain limitations, or run a guided screening workflow.
 
-## Future Work
+## Wind energy metrics
 
-- Add ensemble uncertainty from multiple HighResMIP models (AWI-CM, EC-Earth3P-HR, etc.)
-- Integrate NextGEMS future projections (2020–2049) for climate-change impact assessment
-- Add solar resource analysis (GHI, DNI from CAMS if available)
-- Extend to wave energy (significant wave height, period)
-- Implement cost-benefit analysis (LCOE, NPV) for site selection
+- **Wind speed:** `sqrt(m10u² + m10v²)` at 10 m.
+- **Air density:** ideal gas law, `ρ = p / (R_d T)`, using MSLP and 2 m temperature.
+- **Wind power density (WPD):** `0.5 · ρ · v³` at 10 m.
+- **Hub-height wind:** `v(z) = v(10) · (z / 10)^α` with a user-chosen shear exponent `α`.
+- **Capacity factor:** the NREL 15 MW IEA reference power curve applied to the hub-height wind. The turbine has a 120 m hub height; the demo uses 120 m hub height.
 
-## Contributing
+## Agentic workflow
 
-Contributions welcome! Please open an issue or submit a pull request.
+The agent is not a free-form chatbot. It is a bounded tool-calling system with access to a small, fixed set of climate and wind-analysis tools:
 
-## License
-## Disclaimer & Terms of Use
-
-### Code & Application
-This repository is an academic research prototype developed strictly for educational, demonstration, and non-commercial climate analysis purposes. 
-
-### Data Licensing & Attribution
-The underlying climate model output used in this project originates from the **European Eddy-Rich Earth System Models (EERIE)** project:
-
-- **EERIE Dataset Citation:** Ghosh et al. (2024/2025), *EERIE IFS-FESOM historical and SSP2-4.5 climate simulations*, World Data Center for Climate (WDCC). DOI: [10.26050/WDCC/EERIE_FESOM_hist_v1](https://doi.org/10.26050/WDCC/EERIE_FESOM_hist_v1).
-- **Data License:** Distributed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**. 
-- **Usage Notice:** This prototype uses a spatially cropped subset for academic demonstration. The data is non-commercial and must not be used for bankable energy yields, financial underwriting, or commercial site selection without primary data verification.
-
-## Citation
-
-If you use this project in research, please cite:
-
-```bibtex
-@software{wind_energy_agentic_2026,
-  title={Wind Energy Agentic Analysis Platform},
-  author={Himansu Kesari Pradhan},
-  year={2026},
-  url={https://github.com/TunaHim/wind-energy-agentic-analysis}
-}
-
-@article{ghosh2024eerie,
-  title={EERIE: Ocean Eddy-rich Kilometer-scale Climate Simulation with IFS-FESOM},
-  author={Ghosh, Rohit and others},
-  journal={Geoscientific Model Development},
-  year={2024},
-  doi={10.26050/wdcc/eerie_fesom_hist_HRday}
-}
+```mermaid
+graph TD
+    A[User question] --> B{Provider: Groq, Gemini or built-in}
+    B --> C[Determine intent]
+    C --> D[Select bounded scientific tool]
+    D --> E[Compare periods / spatial difference / rank sites / hub-height sensitivity]
+    E --> F[Read compact runtime data]
+    F --> G[Compute maps, statistics and percentiles]
+    G --> H[Attach tool trace and provenance]
+    H --> I[Answer with explicit caveats]
 ```
 
-## Contact & Support
+The available tools are:
 
-For questions about the project, open an issue on GitHub.
+- Compare two January or July windows.
+- Calculate spatial differences in wind and WPD.
+- Identify the highest-resource grid regions.
+- Compare and rank reference sites.
+- Return site-level wind distributions.
+- Test hub-height sensitivity.
+- Explain analysis limitations.
 
-For questions about EERIE data, see: https://eerie-project.eu/
+The agent shows its execution trace and is instructed to always report the key caveats.
 
-For questions about the km-scale cloud, see: https://easy.gems.dkrz.de/
+## Limitations
+
+- Single EERIE model realisation; no ensemble uncertainty.
+- Only two months (January and July) and five years per window; the comparisons are exploratory, not robust climate trends.
+- Daily mean data lose intraday variability, so power-curve and capacity-factor estimates are biased downward and are not bankable.
+- Wind is at 10 m; hub-height values require an explicit power-law assumption.
+- The ~9 km grid does not resolve turbine wakes, coastal effects, or micro-scale flow.
+- No hydrographic North Sea mask has been applied; the ocean proxy is preliminary.
+
+## Future expansion
+
+This prototype is intentionally narrow. Useful extensions include:
+
+- a) other km-scale model results for wind-energy analysis (e.g., multi-model comparison, more SSPs, longer climatologies);
+- b) solar energy over the North Sea or Europe to be included;
+- c) more built-in tools for agentic AI analysis (e.g., real EEZ overlay, wake and loss-factor integration, measured validation, multi-period trend assessment).
+
+## License and attribution
+
+Project code is released under the MIT License. EERIE data is licensed separately by the data provider; see the DKRZ and EERIE project pages for terms.
+
+If you use the EERIE data, please cite the dataset record referenced on the EERIE data-access documentation.
