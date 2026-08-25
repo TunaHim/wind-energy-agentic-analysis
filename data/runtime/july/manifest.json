@@ -1,0 +1,26 @@
+{
+  "month": "July",
+  "periods": [
+    "July 2020-2024",
+    "July 2036-2040"
+  ],
+  "source": "EERIE IFS-FESOM2-SR highres-future-ssp245 via DKRZ km-scale cloud",
+  "region_bbox": {
+    "longitude": [
+      -5,
+      13
+    ],
+    "latitude": [
+      50,
+      62
+    ]
+  },
+  "runtime_mask": "finite SST ocean proxy; hydrographic North Sea polygon not applied",
+  "files": [
+    "spatial_period_means.parquet",
+    "site_daily_profiles.parquet",
+    "daily_period_summaries.parquet",
+    "variable_snapshot.parquet",
+    "period_summaries.json"
+  ]
+}

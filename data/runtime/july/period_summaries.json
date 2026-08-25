@@ -1,0 +1,26 @@
+{
+  "July 2020-2024": {
+    "period": "July 2020-2024",
+    "days": 155,
+    "mean_wind_speed_ms": 5.989587339691029,
+    "median_wind_speed_ms": 5.833070278167725,
+    "p10_wind_speed_ms": 2.265325164794922,
+    "p90_wind_speed_ms": 9.840331840515137,
+    "mean_wpd_wm2": 230.05043029785156,
+    "weibull_shape_k": 2.177818482720822,
+    "weibull_scale_a_ms": 6.753377499787268,
+    "note": "January daily screening result; not an annual energy estimate"
+  },
+  "July 2036-2040": {
+    "period": "July 2036-2040",
+    "days": 155,
+    "mean_wind_speed_ms": 5.560734727125194,
+    "median_wind_speed_ms": 5.297659873962402,
+    "p10_wind_speed_ms": 2.070944881439209,
+    "p90_wind_speed_ms": 9.35980224609375,
+    "mean_wpd_wm2": 192.71080017089844,
+    "weibull_shape_k": 2.075937380794358,
+    "weibull_scale_a_ms": 6.27271148791148,
+    "note": "January daily screening result; not an annual energy estimate"
+  }
+}
