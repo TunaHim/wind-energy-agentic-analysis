@@ -1,5 +1,7 @@
 # North Sea Wind Intelligence — Agentic EERIE Prototype
 
+Live demo: https://wind-energy-ai-agent.streamlit.app/
+
 A compact, agentic-interface Streamlit prototype for exploratory offshore wind screening over the North Sea using km-scale climate output from the **EERIE IFS-FESOM2-SR** `highres-future-ssp245` simulation.
 
 The app is built for live demonstration: it runs from a small, pre-computed runtime package (~1.6 MB) and does **not** fetch raw EERIE chunks during the interview session.
