@@ -143,6 +143,9 @@ data/*.hdf5
 !data/january/
 !data/january/*.parquet
 !data/january/manifest.json
+!data/runtime/
+!data/runtime/**/*.parquet
+!data/runtime/**/*.json
 
 # Streamlit
 .streamlit/secrets.toml
