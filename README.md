@@ -6,6 +6,10 @@ A compact, agentic-interface Streamlit prototype for exploratory offshore wind s
 
 The app is built for live demonstration: it runs from a small pre-computed runtime package (~1.6 MB) and does **not** fetch the full raw EERIE dataset during deployment.
 
+## Technologies
+
+Python · Xarray · Dask · Zarr · Streamlit · Agentic AI · IFS-FESOM2 · EERIE
+
 ## Scope and disclaimer
 
 This work is for **research and exploratory analysis only**. It is not a decision-support, engineering, or investment tool. The outputs are intended to illustrate how km-scale climate data and a bounded agentic interface can support wind-energy questions, not to replace site-specific measurement campaigns, microscale modelling, or due-diligence workflows.
