@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it is built · North Sea Wind Intelligence</title>
+<style>
+:root{--bg:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--line:#e1e0d9;--axis:#c3c2b7;
+--blue:#2a78d6;--blue-soft:#cde2fb;--orange:#eb6834;--orange-soft:#fbe0d4;--aqua:#1baf7a;--aqua-soft:#d3f1e5;--yellow:#eda100;--yellow-soft:#fcefc9;--violet:#4a3aa7;--violet-soft:#e2def7;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d0d0d;--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--line:#2c2c2a;--axis:#383835;
+--blue:#3987e5;--blue-soft:#17324f;--orange:#d95926;--orange-soft:#3d2216;--aqua:#199e70;--aqua-soft:#12342a;--yellow:#c98500;--yellow-soft:#3a2d0c;--violet:#9085e9;--violet-soft:#2a2550;}}
+:root[data-theme="dark"]{--bg:#0d0d0d;--surface:#1a1a19;--ink:#ffffff;--ink2:#c3c2b7;--muted:#898781;--line:#2c2c2a;--axis:#383835;
+--blue:#3987e5;--blue-soft:#17324f;--orange:#d95926;--orange-soft:#3d2216;--aqua:#199e70;--aqua-soft:#12342a;--yellow:#c98500;--yellow-soft:#3a2d0c;--violet:#9085e9;--violet-soft:#2a2550;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1060px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:26px;margin:0 0 4px}
+h2{font-size:19px;margin:40px 0 8px}
+p.lead{color:var(--ink2);margin:0 0 20px;max-width:760px}
+p{max-width:780px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.grid .card{margin:0}
+.card h3{font-size:15px;margin:0 0 6px}
+.card p{margin:0;color:var(--ink2);font-size:14px}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;margin-bottom:6px}
+.tag.blue{background:var(--blue-soft);color:var(--blue)} .tag.orange{background:var(--orange-soft);color:var(--orange)}
+.tag.aqua{background:var(--aqua-soft);color:var(--aqua)} .tag.violet{background:var(--violet-soft);color:var(--violet)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.stat b{display:block;font-size:24px;font-weight:600}
+.stat span{color:var(--ink2);font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface)}
+th,td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{color:var(--ink2);font-weight:600}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.wrap{overflow-x:auto}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.svgbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto}
+.note{color:var(--muted);font-size:13px}
+</style>
+<meta name="description" content="How km-scale EERIE climate-model output is read chunk by chunk from the DKRZ cloud, cut to the North Sea, stored as Parquet and reduced to a 1.75 MB package for a live app and a tool-bounded AI agent.">
+<meta name="author" content="Himansu Kesari Pradhan">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M5 20c4-8 8-8 11 0s7 8 11 0' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<style>
+.sitenav{position:sticky;top:0;z-index:10;background:var(--surface,#fcfcfb);border-bottom:1px solid var(--line,#e1e0d9)}
+.sitenav div{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font:14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.sitenav b{margin-right:8px;color:var(--ink,#0b0b0b)}
+.sitenav a{color:var(--ink2,#52514e);text-decoration:none}
+.sitenav a:hover,.sitenav a.here{color:var(--blue,#2a78d6)}
+.sitefoot{border-top:1px solid var(--line,#e1e0d9);margin-top:32px;background:var(--surface,#fcfcfb);color:var(--ink2,#52514e)}
+.sitefoot div.in{max-width:1100px;margin:0 auto;padding:18px 16px 26px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 28px;font:13px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.sitefoot b{display:block;color:var(--ink,#0b0b0b);margin-bottom:3px}
+.sitefoot a{color:var(--blue,#2a78d6)}
+.sitefoot p{margin:0}
+</style>
+</head>
+<body>
+<!-- site:nav --><nav class="sitenav"><div><b>North Sea Wind Intelligence</b><a href="engineering_overview.html" class="here">How it is built</a><a href="https://wind-energy-ai-agent.streamlit.app/">Live app</a><a href="https://github.com/TunaHim/wind-energy-agentic-analysis">Code on GitHub</a></div></nav><!-- /site:nav -->
+<main>
+<h1>How the data pipeline works</h1>
+<p class="lead">This page covers the data and software side of the North Sea wind prototype. It shows how km-scale EERIE climate-model
+output is read straight from the DKRZ cloud and cut down to the North Sea. That cut-out becomes a 1.75 MB Parquet package, which is
+everything the live app and its agent ever read.</p>
+
+<div class="stats">
+  <div class="stat"><b>6.6 million</b><span>points per time step on the native global grid</span></div>
+  <div class="stat"><b>16,694</b><span>of them kept: the North Sea box, 0.25%</span></div>
+  <div class="stat"><b>1,600</b><span>cloud chunks read (320 chunks × 5 variables)</span></div>
+  <div class="stat"><b>~10.4 million</b><span>rows in the local Parquet cache (4 periods)</span></div>
+  <div class="stat"><b>1.75 MB</b><span>runtime package deployed with the app</span></div>
+  <div class="stat"><b>14 tools</b><span>the agent may call, each with a trace</span></div>
+</div>
+
+<h2>1. The pipeline at a glance</h2>
+<p>Data flows from left to right. Each box is one stage, and the blue text names the code that does it. The first three stages run once on a
+workstation. Only the last two run in the deployed app.</p>
+<div class="svgbox">
+<svg viewBox="0 0 1000 400" width="100%" role="img" aria-label="Pipeline from data sources to the live app">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+  <rect x="5" y="30" width="590" height="310" rx="10" fill="none" stroke="var(--line)"/>
+  <text x="15" y="332" font-size="11" fill="var(--muted)">run once, offline build</text>
+  <rect x="605" y="30" width="390" height="310" rx="10" fill="none" stroke="var(--line)"/>
+  <text x="615" y="332" font-size="11" fill="var(--muted)">live app (Streamlit Community Cloud)</text>
+
+  <text x="15" y="22" font-size="13" font-weight="600" fill="var(--ink2)">1 · SOURCE</text>
+  <rect x="15" y="40" width="170" height="150" rx="8" fill="var(--blue-soft)" stroke="var(--blue)"/>
+  <text x="27" y="62" font-size="13" font-weight="600" fill="var(--ink)">DKRZ km-scale cloud</text>
+  <text x="27" y="82" font-size="12" fill="var(--ink2)">EERIE IFS-FESOM2-SR,</text>
+  <text x="27" y="98" font-size="12" fill="var(--ink2)">SSP2-4.5, ~9 km atmos.</text>
+  <text x="27" y="118" font-size="12" fill="var(--ink2)">native reduced</text>
+  <text x="27" y="134" font-size="12" fill="var(--ink2)">Gaussian grid, daily</text>
+  <text x="27" y="154" font-size="12" fill="var(--ink2)">Zarr over HTTPS,</text>
+  <text x="27" y="170" font-size="12" fill="var(--ink2)">Blosc-compressed</text>
+
+  <text x="205" y="22" font-size="13" font-weight="600" fill="var(--ink2)">2 · READ AND CUT</text>
+  <rect x="205" y="40" width="185" height="270" rx="8" fill="var(--surface)" stroke="var(--axis)"/>
+  <text x="217" y="62" font-size="13" font-weight="600" fill="var(--ink)">For every 2-day chunk:</text>
+  <text x="217" y="84" font-size="12" fill="var(--ink2)">① read .zmetadata and the</text>
+  <text x="231" y="100" font-size="12" fill="var(--ink2)">lat/lon arrays once</text>
+  <text x="217" y="120" font-size="12" fill="var(--ink2)">② pick the chunk numbers</text>
+  <text x="231" y="136" font-size="12" fill="var(--ink2)">from the wanted dates</text>
+  <text x="217" y="156" font-size="12" fill="var(--ink2)">③ GET 5 variables in</text>
+  <text x="231" y="172" font-size="12" fill="var(--ink2)">parallel threads</text>
+  <text x="217" y="192" font-size="12" fill="var(--ink2)">④ Blosc-decode, keep the</text>
+  <text x="231" y="208" font-size="12" fill="var(--ink2)">16,694 box points</text>
+  <text x="217" y="228" font-size="12" fill="var(--ink2)">⑤ 6 retries with backoff</text>
+  <text x="217" y="248" font-size="12" fill="var(--ink2)">⑥ skip chunks already done</text>
+  <text x="217" y="284" font-size="11" fill="var(--blue)">build_expanded_north_sea_</text>
+  <text x="217" y="298" font-size="11" fill="var(--blue)">cache.py · january_analysis.py</text>
+
+  <text x="410" y="22" font-size="13" font-weight="600" fill="var(--ink2)">3 · KEEP + PACKAGE</text>
+  <rect x="410" y="40" width="175" height="120" rx="8" fill="var(--aqua-soft)" stroke="var(--aqua)"/>
+  <text x="422" y="62" font-size="13" font-weight="600" fill="var(--ink)">Local cache</text>
+  <text x="422" y="82" font-size="12" fill="var(--ink2)">one Parquet per chunk,</text>
+  <text x="422" y="98" font-size="12" fill="var(--ink2)">one per period,</text>
+  <text x="422" y="114" font-size="12" fill="var(--ink2)">manifest.json with rows,</text>
+  <text x="422" y="130" font-size="12" fill="var(--ink2)">dates and source URL</text>
+  <text x="422" y="150" font-size="11" fill="var(--blue)">largeData/ (not in git)</text>
+  <rect x="410" y="176" width="175" height="134" rx="8" fill="var(--aqua-soft)" stroke="var(--aqua)"/>
+  <text x="422" y="198" font-size="13" font-weight="600" fill="var(--ink)">Runtime package</text>
+  <text x="422" y="218" font-size="12" fill="var(--ink2)">wind metrics, North Sea</text>
+  <text x="422" y="234" font-size="12" fill="var(--ink2)">polygon mask, period</text>
+  <text x="422" y="250" font-size="12" fill="var(--ink2)">means, site profiles,</text>
+  <text x="422" y="266" font-size="12" fill="var(--ink2)">daily summaries: 1.75 MB</text>
+  <text x="422" y="286" font-size="11" fill="var(--blue)">build_runtime_artifacts.py</text>
+  <text x="422" y="300" font-size="11" fill="var(--blue)">data/runtime/ (in git)</text>
+
+  <text x="615" y="22" font-size="13" font-weight="600" fill="var(--ink2)">4 · SERVE</text>
+  <rect x="615" y="40" width="175" height="150" rx="8" fill="var(--surface)" stroke="var(--axis)"/>
+  <text x="627" y="62" font-size="13" font-weight="600" fill="var(--ink)">Streamlit app</text>
+  <text x="627" y="82" font-size="12" fill="var(--ink2)">reads only the package,</text>
+  <text x="627" y="98" font-size="12" fill="var(--ink2)">cached in memory</text>
+  <text x="627" y="118" font-size="12" fill="var(--ink2)">+ EMODnet bathymetry</text>
+  <text x="627" y="134" font-size="12" fill="var(--ink2)">(ERDDAP griddap)</text>
+  <text x="627" y="150" font-size="12" fill="var(--ink2)">+ Natural Earth borders</text>
+  <text x="627" y="180" font-size="11" fill="var(--blue)">app.py · runtime_data.py</text>
+
+  <text x="810" y="22" font-size="13" font-weight="600" fill="var(--ink2)">5 · ANSWER</text>
+  <rect x="810" y="40" width="175" height="270" rx="8" fill="var(--violet-soft)" stroke="var(--violet)"/>
+  <text x="822" y="62" font-size="13" font-weight="600" fill="var(--ink)">Bounded agent</text>
+  <text x="822" y="84" font-size="12" fill="var(--ink2)">14 fixed tools: compare</text>
+  <text x="822" y="100" font-size="12" fill="var(--ink2)">periods, rank sites,</text>
+  <text x="822" y="116" font-size="12" fill="var(--ink2)">hub-height sensitivity,</text>
+  <text x="822" y="132" font-size="12" fill="var(--ink2)">provenance, limitations</text>
+  <text x="822" y="156" font-size="12" fill="var(--ink2)">Groq or Gemini through</text>
+  <text x="822" y="172" font-size="12" fill="var(--ink2)">an OpenAI-compatible</text>
+  <text x="822" y="188" font-size="12" fill="var(--ink2)">API, or a built-in rule</text>
+  <text x="822" y="204" font-size="12" fill="var(--ink2)">engine that runs offline</text>
+  <text x="822" y="228" font-size="12" fill="var(--ink2)">every answer shows its</text>
+  <text x="822" y="244" font-size="12" fill="var(--ink2)">tool trace and caveats</text>
+  <text x="822" y="284" font-size="11" fill="var(--blue)">january_agent_tools.py</text>
+  <text x="822" y="298" font-size="11" fill="var(--blue)">llm_providers.py</text>
+
+  <line x1="185" y1="115" x2="203" y2="115" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="390" y1="100" x2="408" y2="100" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="497" y1="160" x2="497" y2="174" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="585" y1="240" x2="613" y2="120" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="790" y1="115" x2="808" y2="115" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="5" y="372" font-size="12" fill="var(--ink2)">Raw global chunks are never written to disk ("raw_global_chunks_persisted": false in every manifest).</text>
+  <text x="5" y="390" font-size="12" fill="var(--ink2)">The deployed app has no access to the cloud archive and does not need it.</text>
+</svg>
+</div>
+
+<h2>2. Why so much is read and so little is kept</h2>
+<p>The EERIE daily output is stored on the model's native reduced Gaussian grid as one flat array of 6,599,680 points per day. Each
+stored chunk holds two days of the whole globe. Whatever region you want, each chunk has to come over the network in full.</p>
+<div class="svgbox">
+<svg viewBox="0 0 1000 150" width="100%" role="img" aria-label="Whole globe chunk versus kept North Sea points">
+  <defs><marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+  <rect x="20" y="30" width="420" height="60" rx="6" fill="var(--blue-soft)" stroke="var(--blue)"/>
+  <text x="34" y="56" font-size="13" font-weight="600" fill="var(--ink)">one chunk = 2 days × 6,599,680 points (whole globe)</text>
+  <text x="34" y="76" font-size="12" fill="var(--ink2)">float32: 52.8 MB per variable before Blosc compression</text>
+  <line x1="440" y1="60" x2="530" y2="60" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow3)"/>
+  <text x="452" y="50" font-size="12" fill="var(--ink2)">decode, index</text>
+  <rect x="540" y="30" width="6" height="60" fill="var(--aqua)"/>
+  <text x="560" y="56" font-size="13" font-weight="600" fill="var(--ink)">16,694 points kept (−5…13°E, 50…62°N)</text>
+  <text x="560" y="76" font-size="12" fill="var(--ink2)">0.25% of the chunk, written as Parquet</text>
+  <text x="20" y="124" font-size="12" fill="var(--ink2)">Four periods of 155 days each (January and July, 2020–24 and 2036–40) need 320 chunks per variable, so 1,600 requests and up to ~84 GB before compression.</text>
+</svg>
+</div>
+<p>Because the cost of each request is known in advance, <code>estimate_native_transfer_gb()</code> can work out the transfer volume
+before a download starts.</p>
+
+<h2>3. Problems the pipeline had to solve</h2>
+<div class="grid">
+  <div class="card"><span class="tag orange">native grid</span><h3>No regular lat/lon grid</h3>
+  <p>The native grid is one long list of points, not a rectangle, so a box cannot be sliced by index ranges. The lat and lon arrays are read
+  once from the store, and the indices of the points inside the box are kept and reused for every chunk.</p></div>
+  <div class="card"><span class="tag orange">longitudes</span><h3>0–360° versus −5°E</h3>
+  <p>EERIE stores longitudes from 0 to 360°. They are converted to −180…180° before masking, so a western bound like −5°E selects
+  the right points instead of nothing.</p></div>
+  <div class="card"><span class="tag orange">direct chunk access</span><h3>Fetch only the chunks needed</h3>
+  <p>Chunk numbers are worked out from the wanted dates (days since 1 January 2015, divided by two). Each chunk is fetched by URL and decoded
+  with Blosc, so the build reads exactly the chunks it needs and nothing else.</p></div>
+  <div class="card"><span class="tag blue">reliability</span><h3>Large, slow transfers</h3>
+  <p>Every request has a 15-minute time-out and up to six retries with growing waits. The five variables of a chunk are downloaded in
+  parallel. Each finished chunk is saved straight away, so a restart continues where it stopped.</p></div>
+  <div class="card"><span class="tag blue">deployment</span><h3>A free cloud host</h3>
+  <p>Streamlit Community Cloud cannot hold or stream gigabytes. A separate build step reduces the data to five small files per month.
+  The app checks that the package is complete before it starts and stops with a clear message if it is not.</p></div>
+  <div class="card"><span class="tag blue">secrets</span><h3>API keys stay out of git</h3>
+  <p>LLM keys are read from Streamlit secrets or environment variables. If no key is set, or a model returns an invalid tool call, the user
+  is pointed to the built-in agent, which needs no network.</p></div>
+  <div class="card"><span class="tag aqua">provenance</span><h3>Every file says where it came from</h3>
+  <p>Each build writes a manifest with the dataset URL, box, variables, periods, row counts, dates and mask status. The agent has a
+  provenance tool that returns this record with any answer.</p></div>
+  <div class="card"><span class="tag aqua">honesty</span><h3>Limits stated, not hidden</h3>
+  <p>The data hold 10 m wind only, so every hub-height number uses an explicit power-law exponent the user can change. The agent has
+  tools that check screening readiness and explain limitations, and the mask is labelled preliminary.</p></div>
+</div>
+
+<h2>4. How the code is organised</h2>
+<div class="svgbox">
+<svg viewBox="0 0 1000 190" width="100%" role="img" aria-label="Layers of the code">
+  <defs><marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+  <rect x="20" y="20" width="300" height="150" rx="8" fill="var(--surface)" stroke="var(--axis)"/>
+  <text x="36" y="44" font-size="13" font-weight="600" fill="var(--ink)">Build layer (offline)</text>
+  <text x="36" y="66" font-size="12" fill="var(--ink2)">build_expanded_north_sea_cache.py</text>
+  <text x="36" y="82" font-size="12" fill="var(--ink2)">build_runtime_artifacts.py · north_sea_mask.py</text>
+  <text x="36" y="108" font-size="12" fill="var(--ink2)">Cloud chunks → regional Parquet cache →</text>
+  <text x="36" y="124" font-size="12" fill="var(--ink2)">small runtime package with manifests.</text>
+  <rect x="350" y="20" width="300" height="150" rx="8" fill="var(--surface)" stroke="var(--axis)"/>
+  <text x="366" y="44" font-size="13" font-weight="600" fill="var(--ink)">Science layer</text>
+  <text x="366" y="66" font-size="12" fill="var(--ink2)">wind_energy.py · january_analysis.py</text>
+  <text x="366" y="92" font-size="12" fill="var(--ink2)">Wind speed and direction, air density,</text>
+  <text x="366" y="108" font-size="12" fill="var(--ink2)">power density, Weibull fit, power law,</text>
+  <text x="366" y="124" font-size="12" fill="var(--ink2)">capacity factor with the NREL 15 MW</text>
+  <text x="366" y="140" font-size="12" fill="var(--ink2)">IEA reference turbine.</text>
+  <rect x="680" y="20" width="300" height="150" rx="8" fill="var(--surface)" stroke="var(--axis)"/>
+  <text x="696" y="44" font-size="13" font-weight="600" fill="var(--ink)">Serving layer</text>
+  <text x="696" y="66" font-size="12" fill="var(--ink2)">app.py · runtime_data.py</text>
+  <text x="696" y="82" font-size="12" fill="var(--ink2)">january_agent_tools.py · llm_providers.py</text>
+  <text x="696" y="108" font-size="12" fill="var(--ink2)">Three tabs (overview, site explorer,</text>
+  <text x="696" y="124" font-size="12" fill="var(--ink2)">agent). Tools are JSON function schemas</text>
+  <text x="696" y="140" font-size="12" fill="var(--ink2)">the LLM must call; it never sees raw data.</text>
+  <line x1="320" y1="95" x2="348" y2="95" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <line x1="650" y1="95" x2="678" y2="95" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow2)"/>
+</svg>
+</div>
+<div class="wrap" style="margin-top:12px">
+<table>
+<thead><tr><th>Data product</th><th>Format</th><th>What it holds</th></tr></thead>
+<tbody>
+<tr><td>Regional cache, per chunk and per period</td><td>Parquet + manifest.json</td><td>time, lat, lon and five variables (10 m u/v wind, 2 m temperature, surface pressure, SST) for every box point and day</td></tr>
+<tr><td>spatial_period_means</td><td>Parquet</td><td>mean wind, power density and SST per grid point for both periods, and their change</td></tr>
+<tr><td>site_daily_profiles</td><td>Parquet</td><td>daily series at seven reference sites (Dogger Bank, Hornsea, German Bight and others), with the requested and the nearest grid position</td></tr>
+<tr><td>daily_period_summaries</td><td>Parquet</td><td>daily box mean, median and 10th/90th percentiles</td></tr>
+<tr><td>variable_snapshot</td><td>Parquet</td><td>one day of every variable, for the maps</td></tr>
+<tr><td>period_summaries</td><td>JSON</td><td>period statistics and Weibull parameters, read directly by the agent</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>5. What could come next</h2>
+<div class="wrap">
+<table>
+<thead><tr><th>Step</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Automated tests and CI</td><td>The wind formulas and the mask are good candidates for small offline tests on GitHub Actions.</td></tr>
+<tr><td>Official sea-area polygon</td><td>Replace the hand-drawn mask with a published North Sea or EEZ polygon (for example from Marine Regions).</td></tr>
+<tr><td>More models and scenarios</td><td>The dataset URL is built from model, experiment and version, so another scenario mainly needs new periods and a rebuild.</td></tr>
+<tr><td>Solar resource</td><td>The same pipeline and package format could carry solar variables.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>6. In one sentence</h2>
+<div class="card"><p style="color:var(--ink);font-size:15px">Km-scale climate-model output is read from a public cloud Zarr archive chunk by chunk, with the cost known in advance and every transfer retried and resumable. It is cut to the North Sea in memory and stored as Parquet with a manifest, then reduced to a 1.75 MB package. A web app and a tool-bounded AI agent answer questions from that package alone, always with their provenance and limitations.</p></div>
+</main>
+<!-- site:foot --><footer class="sitefoot"><div class="in">
+<div><b>North Sea Wind Intelligence</b><p>A prototype by Himansu Kesari Pradhan, 2026, for research and exploratory use only. Code under the
+<a href="https://github.com/TunaHim/wind-energy-agentic-analysis/blob/main/LICENSE">MIT licence</a>; source on
+<a href="https://github.com/TunaHim/wind-energy-agentic-analysis">GitHub</a>. Page built 6 November 2026.</p></div>
+<div><b>Data credits</b><p>EERIE model output: EERIE consortium, served by DKRZ (km-scale cloud). Bathymetry: EMODnet Bathymetry DTM 2024.
+Borders: Natural Earth. Reference turbine: NREL / IEA Wind 15 MW.</p></div>
+<div><b>More</b><p><a href="https://wind-energy-ai-agent.streamlit.app/">Live app</a> ·
+<a href="https://github.com/TunaHim/wind-energy-agentic-analysis#readme">README</a> ·
+<a href="https://github.com/TunaHim/wind-energy-agentic-analysis/issues">Questions and comments</a></p></div>
+</div></footer><!-- /site:foot -->
+</body>
+</html>

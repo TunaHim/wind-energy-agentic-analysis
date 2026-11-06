@@ -6,6 +6,8 @@ A compact, agentic-interface Streamlit prototype for exploratory offshore wind s
 
 The app is built for live demonstration: it runs from a small pre-computed runtime package (~1.6 MB) and does **not** fetch the full raw EERIE dataset during deployment.
 
+**How it is built:** a one-page overview of the data pipeline (cloud Zarr chunks → North Sea Parquet cache → 1.75 MB runtime package → app and agent) is in [`docs/engineering_overview.html`](docs/engineering_overview.html), published at https://tunahim.github.io/wind-energy-agentic-analysis/engineering_overview.html once GitHub Pages is enabled.
+
 ## Technologies
 
 Python · Xarray · Dask · Zarr · Streamlit · Agentic AI · IFS-FESOM2 · EERIE
