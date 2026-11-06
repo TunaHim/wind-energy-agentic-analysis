@@ -40,6 +40,13 @@ The EERIE 2D daily output provides **10 m wind only**, not 100 m or hub-height w
 
 The expanded cache is a bounding-box extraction. The app uses finite `msst` as a preliminary ocean proxy to exclude many land points, but a final hydrographic North Sea polygon has **not** yet been applied.
 
+## Data access pipeline
+
+1. **Find:** the EERIE IFS-FESOM2-SR dataset is listed in the DKRZ km-scale cloud catalogue (https://km-scale-cloud.dkrz.de/datasets).
+2. **Read:** the app's build scripts open the dataset's cloud Zarr endpoint over HTTPS (consolidated `.zmetadata`, lazy chunks), and cut out the North Sea box and the selected months.
+3. **Store:** the cut-out is written as small Parquet files (about 1.6 MB in total).
+4. **Serve:** the live Streamlit app reads only these Parquet files, so it never downloads raw model data.
+
 ## Project structure
 
 ```
