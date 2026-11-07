@@ -4,9 +4,9 @@ Live demo: https://wind-energy-ai-agent.streamlit.app/
 
 A compact, agentic-interface Streamlit prototype for exploratory offshore wind screening over the North Sea using km-scale climate output from the **EERIE IFS-FESOM2-SR** `highres-future-ssp245` simulation.
 
-The app is built for live demonstration: it runs from a small pre-computed runtime package (~1.6 MB) and does **not** fetch the full raw EERIE dataset during deployment.
+The app is built for live demonstration: it runs from a small pre-computed runtime package (~1.75 MB) and does **not** fetch the full raw EERIE dataset during deployment.
 
-**How it is built:** a one-page overview of the data pipeline (cloud Zarr chunks → North Sea Parquet cache → 1.75 MB runtime package → app and agent) is in [`docs/engineering_overview.html`](docs/engineering_overview.html), published at https://tunahim.github.io/wind-energy-agentic-analysis/engineering_overview.html once GitHub Pages is enabled.
+**How it is built:** a one-page overview of the data pipeline (cloud Zarr chunks → North Sea Parquet cache → 1.75 MB runtime package → app and agent) is in [`docs/engineering_overview.html`](docs/engineering_overview.html), published at https://tunahim.github.io/wind-energy-agentic-analysis/engineering_overview.html.
 
 ## Technologies
 
@@ -46,7 +46,7 @@ The expanded cache is a bounding-box extraction. The app uses finite `msst` as a
 
 1. **Find:** the EERIE IFS-FESOM2-SR dataset is listed in the DKRZ km-scale cloud catalogue (https://km-scale-cloud.dkrz.de/datasets).
 2. **Read:** the app's build scripts open the dataset's cloud Zarr endpoint over HTTPS (consolidated `.zmetadata`, lazy chunks), and cut out the North Sea box and the selected months.
-3. **Store:** the cut-out is written as small Parquet files (about 1.6 MB in total).
+3. **Store:** the cut-out is written as small Parquet files (about 1.75 MB in total).
 4. **Serve:** the live Streamlit app reads only these Parquet files, so it never downloads raw model data.
 
 ## Project structure
